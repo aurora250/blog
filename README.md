@@ -94,7 +94,9 @@ pnpm build && pnpm preview
 | `tests/feature-data.test.mjs` | 断言中写死了 `shirone`、`kernelpatch`、`folkpatch`、`PHP` 等演示实体 |
 | `includes` / `rehype-markdown-images` 插件测试 | 前者依赖 `src/content/snippets/include-example.md`；后者在上游原始克隆中同样失败 |
 
-除上述三项外，其余与文章内容无关的主题单元测试仍会在 CI 中运行，但标注了 `continue-on-error`：这些是主题内部实现的测试，且个别用例在 GitHub runner 上失败而本地（含 `TZ=UTC`、`CI=true`、串行执行）无法复现，所以不让它拦住发布。**CI 的硬门禁是 `astro check` 与 `pnpm build`**（站点能否构建成功才是这个博客真正需要的保证）。想恢复为硬门禁，去掉 `ci.yml` 中该步骤的 `continue-on-error` 即可。
+除上述三项外，其余 387 项与文章内容无关的主题单元测试仍在 CI 中作为**硬门禁**运行。CI 的门禁是 `astro check` + 主题单元测试 + `pnpm build`（站点能否构建成功）。
+
+**注意**：这些校验**必须在全新 clone 上验证**。本地工作区里 `src/generated/`、`.astro/` 等被 gitignore 的生成物会掩盖问题——例如 `src/content/moments/` 这类空目录在本地存在、但在 CI 上因不被 git 跟踪而缺失，导致 `tests/collections-manifest.test.mjs` 失败。因此本仓库用 `.gitkeep` 显式保留空内容目录。
 
 想恢复被排除的检查：把主题的演示文章放回 `src/content/posts/` 与 `src/content/snippets/`，并在 `src/data/` 中恢复演示实体。
 

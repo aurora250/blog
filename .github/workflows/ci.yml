@@ -75,13 +75,7 @@ jobs:
       #
       # 注意：不能用 `node --test "tests/**/*.test.mjs" --test-skip-pattern=...`，
       # 该参数过滤的是**测试名**而不是文件名，对「按文件排除」无效，会静默照跑。
-      #
-      # `continue-on-error`：这些是主题内部实现的测试，与你的文章内容无关，且在
-      # GitHub runner 上有个别用例失败、本地（含 TZ=UTC、CI=true、串行）无法复现。
-      # 因此不让它阻塞部署——失败会在 Actions 里显示为红叉供排查，但不会拦住发布。
-      # 想要它硬门禁：把 continue-on-error 去掉即可（需先解决 runner 侧的差异）。
       - name: Run theme unit tests
-        continue-on-error: true
         shell: bash
         run: |
           shopt -s globstar nullglob

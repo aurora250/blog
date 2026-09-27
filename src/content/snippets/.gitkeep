@@ -1,0 +1,2 @@
+# 保留空目录：Astro 的 glob loader 与 tests/collections-manifest.test.mjs 都要求该目录存在。
+# 新增内容时删除本文件或保留均可。
