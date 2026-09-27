@@ -13,7 +13,7 @@
 corepack enable
 pnpm install
 
-# 本地开发：http://localhost:4321/blog/
+# 本地开发：http://localhost:4321/blog/   ← 注意结尾的斜杠，见下方「本地访问地址」
 pnpm dev
 
 # 新建文章（自动生成带 frontmatter 的 .md）
@@ -26,6 +26,26 @@ pnpm build && pnpm preview
 写完文章后 push 到 `main` 分支，GitHub Actions 会自动重新构建并发布，通常 1~3 分钟生效。
 
 **发布流程**：编辑 `src/content/posts/*.md` → `git push origin main` → Actions 自动部署 → 线上更新。
+
+## 本地访问地址（重要）
+
+`pnpm dev` 启动后，**必须带上结尾斜杠**访问：
+
+| 地址 | dev (`pnpm dev`) | preview (`pnpm preview`) | 线上 |
+| --- | --- | --- | --- |
+| `http://localhost:4321/blog` | ❌ 404 | ✅ 200 | ✅ 301 → `/blog/` |
+| `http://localhost:4321/blog/` | ✅ 200 | ✅ 200 | ✅ 200 |
+| `http://localhost:4321/` | ❌ 404 | ❌ 404 | ❌ 404 |
+| `http://localhost:4321/blog/about` | ❌ 404 | ❌ 404 | ✅ 301 → `/blog/about/` |
+
+原因有两个，都与本站配置无关，属于 Astro / 静态托管的既有行为：
+
+1. **Astro dev server 不做尾斜杠归一化**。主题全程使用 `trailingSlash: "always"`，而 dev 的静态文件层在路由匹配前就返回 404，中间件也拦不到（实测在 `base: "/"` 的默认部署下，`http://localhost:4321/` 本身就是 404，因此这与 `/blog` 无关）。
+2. **GitHub Pages 等静态托管会 301 补齐尾斜杠**，所以线上无论带不带斜杠都能打开。
+
+另外注意 `astro dev` 启动提示里打印的 `Local http://localhost:4321/blog` **就是那个 404 地址**——这是 Astro 用「域名 + base」拼出来的固定格式，无法通过配置改掉。请手动补上斜杠。
+
+想看与线上完全一致的产物，用 `pnpm build && pnpm preview`（默认 http://localhost:4321 ，此时 `http://localhost:4321/blog` 不带斜杠也能打开）。
 
 ## 目录速查
 
