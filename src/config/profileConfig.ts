@@ -7,10 +7,11 @@ import { withUserConfig } from "../utils/config-overlay.ts";
  */
 export const profileConfig: ProfileConfig = withUserConfig("profile", {
 	// 头像：相对 src 目录的路径（走构建期图片优化），或以 "/" 开头的 public 路径。
-	// 请替换为自己的头像，例如把图片放到 src/assets/images/avatar.webp 后写 "assets/images/avatar.webp"。
-	avatar: "assets/images/demo-avatar.webp",
-	name: "Aurora",
-	bio: "记录 · 思考 · 构建", // 侧栏个人简介，请替换为你自己的介绍
+	// 当前是从站点 logo 生成的占位图，请替换成你自己的头像：
+	// 把图片放到 src/assets/images/avatar.webp 覆盖即可（尺寸建议 256x256 以上）。
+	avatar: "assets/images/avatar.webp",
+	name: "胡恩麒",
+	bio: "C++ / Rust / Go · 维护 NexusForce", // 侧栏个人简介
 	links: [
 		{
 			name: "GitHub",

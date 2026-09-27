@@ -78,6 +78,8 @@ pnpm build && pnpm preview
 
 ## 相对上游主题的本地改动
 
+### 1. 修复子路径部署下的 URL 拼接
+
 为使主题在 GitHub Pages **子路径**部署下正确工作，修复了上游若干「只按根路径拼 URL」的写法（上游默认部署在根路径，因此不会暴露）：
 
 - `src/utils/url-utils.ts`：新增 `getSiteWithBase()`，产出「域名 + base」的站点根地址；
@@ -86,19 +88,55 @@ pnpm build && pnpm preview
 - `src/pages/robots.txt.ts`：`Sitemap:` 地址缺少前缀；
 - `src/layouts/Layout.astro`：页面 `<head>` 中 RSS / Atom 的 `<link rel="alternate">` 缺少前缀。
 
-另外把上游面向主题开发者的 CI（包含依赖演示文章的 Playwright 端到端测试）替换为适合个人博客的「构建校验 + 主题单元测试」。CI 中刻意排除了三类检查，原因如下：
+### 2. 字体源改为 woff2（仓库瘦身）
 
-| 排除项 | 原因 |
+上游自带 14.52 MB 的 `Yozai-Medium.ttf`。同一份完整字形集转成 woff2 后为 6.62 MB，
+构建期子集化流程不受影响（`subset-font` 接受 woff2 输入，产物体积字节级等价）：
+
+- 源文件：`src/assets/fonts/Yozai-Medium.woff2`（原 `.ttf` 已删除）；
+- 引用位置：`src/config/fontConfig.ts` 里 `yozai-cjk` 的 `file`。
+
+### 3. 修复日历周几缺字（上游缺陷）
+
+侧栏日历的周几名是客户端用 `Intl.DateTimeFormat` 现算的，源码里没有字面量，
+因此上游的字符采集（只扫 Markdown / i18n / config / data）永远收不到它们 ——
+结果是「周二」的「二」等字形被裁掉，浏览器回退到系统字体。
+
+- 修复位置：`src/integration/fonts.ts` 的 `collectSiteText()`，新增 `includeRuntimeIntl`
+  分支（默认开启），用**固定锚点日期**生成周几与月份名以保证构建可复现；
+- 语言取自 `siteConfig.lang`，由 `buildFontDeclarations()` 通过 `loadConfigModule` 加载，
+  包模式下同样生效；
+- 开关：`src/config/fontConfig.ts` 的 `subsetting.includeRuntimeIntl`；
+- 代价：子集 368.4 KB → 369.0 KB（+0.6 KB）。
+
+### 4. CI 适配
+
+把上游面向主题开发者的 CI（含依赖演示文章的 Playwright 端到端测试）替换为适合个人博客的
+「构建校验 + 主题单元测试」，并删除了对应的开发期文件。CI 的硬门禁是
+`astro check` + 主题单元测试 + `pnpm build`。
+
+**注意**：这些校验**必须在全新 clone 上验证**。本地工作区里 `src/generated/`、`.astro/`
+等被 gitignore 的生成物会掩盖问题——例如 `src/content/moments/` 这类空目录在本地存在、
+但在 CI 上因不被 git 跟踪而缺失，会让 `tests/collections-manifest.test.mjs` 失败。
+因此本仓库用 `.gitkeep` 显式保留空内容目录。
+另：字体子集有**以 charset 为键的缓存**，改了采集逻辑后需要清掉
+`src/assets/fonts/.subset/`（或改一次字体源文件）才会重新生成，否则会静默复用旧子集。
+
+## 精简说明
+
+已删除上游随仓库带来的、个人博客用不到的开发素材（这些内容都与构建无关，删除不影响站点）：
+
+| 已删除 | 说明 |
 | --- | --- |
-| `pnpm check:manifest` | 校验主题自带 Markdown 语法演示文与语法清单的对应关系，演示文已删除 |
-| `tests/feature-data.test.mjs` | 断言中写死了 `shirone`、`kernelpatch`、`folkpatch`、`PHP` 等演示实体 |
-| `includes` / `rehype-markdown-images` 插件测试 | 前者依赖 `src/content/snippets/include-example.md`；后者在上游原始克隆中同样失败 |
+| `docs/`、`rules/`、`AGENTS.md`、`DESIGN.md`、`CONTRIBUTING.md`、`INDEX.md`、`.agents/` | 主题开发者文档与 AI 技能包 |
+| `tests/site/`、`playwright.config.ts` | 依赖演示内容的端到端测试（浏览器从未安装，且 CI 不跑） |
+| `lighthouserc.cjs` | 本地性能审计配置 |
+| `.vscode/schemas/` | 内容分离用的 YAML schema（已在 settings.json 中一并清理引用） |
+| `Benchmark.webp`、`README.*.md`（英/繁/日）、`.env.example`、`vercel.json`、`shirone.content.example.json`、`frontmatter.json`、`artifacts/` | 主题宣传与其它平台/双仓示例 |
+| `package.json` 中 `check:manifest`、`design:lint`、`skills:package`、`lighthouse*`、`test`、`schemas` | 指向上述已删文件的失效脚本 |
 
-除上述三项外，其余 387 项与文章内容无关的主题单元测试仍在 CI 中作为**硬门禁**运行。CI 的门禁是 `astro check` + 主题单元测试 + `pnpm build`（站点能否构建成功）。
-
-**注意**：这些校验**必须在全新 clone 上验证**。本地工作区里 `src/generated/`、`.astro/` 等被 gitignore 的生成物会掩盖问题——例如 `src/content/moments/` 这类空目录在本地存在、但在 CI 上因不被 git 跟踪而缺失，导致 `tests/collections-manifest.test.mjs` 失败。因此本仓库用 `.gitkeep` 显式保留空内容目录。
-
-想恢复被排除的检查：把主题的演示文章放回 `src/content/posts/` 与 `src/content/snippets/`，并在 `src/data/` 中恢复演示实体。
+保留但需要注意的：`scripts/content/*`（内容分离工具，被 `tests/content/*` 覆盖，属 CI 门禁）、
+`tests/`（与内容无关的主题单元测试）、`.vscode/extensions.json`、`biome.json`。
 
 ## 升级主题
 

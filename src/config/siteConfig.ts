@@ -15,8 +15,8 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 	// 日后若改用 <user>.github.io 用户站点或绑定自定义域名，把 base 改回 "/" 并重新构建。
 	site: "https://aurora250.github.io",
 	base: "/blog",
-	title: "Aurora's Blog",
-	subtitle: "记录 · 思考 · 构建",
+	title: "胡恩麒的博客",
+	subtitle: "C++ / Rust / Go · 记录与分享",
 	// 电脑端顶栏标题与导航内容区域："left" 左对齐，"center" 居中。
 	topAppBar: {
 		contentAlign: "center",
@@ -78,9 +78,9 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 		homeText: {
 			// 仅在首页 Banner 中显示，标题与副标题会上下居中排列。
 			enable: true,
-			title: "Aurora's Blog",
+			title: "胡恩麒的博客",
 			subtitle: [
-				"记录 · 思考 · 构建",
+				"C++ / Rust / Go",
 				"把想清楚的事写下来",
 				"每天进步一点点",
 			],

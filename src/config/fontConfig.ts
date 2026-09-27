@@ -81,6 +81,11 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 
 		// ---------------------------------------------------------------------
 		// 2. 中文 / 日文 CJK 字体（悠哉圆体 Yozai Medium，全量简繁中日韩 100% 覆盖）
+		//
+		// 源文件为 woff2：上游提供的是 14.52 MB 的 TTF，同样的完整字形集转成
+		// woff2 后只有 6.62 MB（省 7.9 MB / 54%），构建期仍会按页面用字再子集化，
+		// 因此发布产物大小与使用 TTF 时完全一致（`subset-font` 接受 woff2 输入）。
+		// 换回 TTF 只需改回 file 路径，无需其他改动。
 		// ---------------------------------------------------------------------
 		{
 			id: "yozai-cjk",
@@ -89,7 +94,7 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 			source: "local",
 			variants: [
 				{
-					file: "src/assets/fonts/Yozai-Medium.ttf",
+					file: "src/assets/fonts/Yozai-Medium.woff2",
 					weight: 500,
 					style: "normal",
 				},
@@ -143,6 +148,7 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 		includeI18n: true, // 扫描全部 10 种语言词典
 		includeConfig: true, // 扫描站点配置与导航
 		includeCommon: true, // 包含常用标点与基础字符
+		includeRuntimeIntl: true, // 包含日历等运行时由 Intl 生成的周几/月份文字
 		allowRemoteText: true, // 允许抓取 Meting 云端歌单曲目文本参与字形提取
 	},
 

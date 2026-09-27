@@ -47,6 +47,7 @@ interface FontConfigLike {
 		includeContent?: boolean;
 		includeI18n?: boolean;
 		includeConfig?: boolean;
+		includeRuntimeIntl?: boolean;
 		allowRemoteText?: boolean;
 	};
 	budget?: { maxFamilyBytes?: number };
@@ -98,6 +99,8 @@ export async function collectSiteText(
 	paths: ResolvedShironesPaths,
 	fontConfig: FontConfigLike,
 	extraCharacters = "",
+	/** Site language (`siteConfig.lang`), used to reproduce runtime `Intl` text. */
+	lang = "en",
 ): Promise<string> {
 	const charSet = new Set<string>();
 	const subsetting = fontConfig.subsetting ?? {};
@@ -141,6 +144,33 @@ export async function collectSiteText(
 
 	for (const ch of extraCharacters) {
 		if (ch.charCodeAt(0) > 31) charSet.add(ch);
+	}
+
+	// Runtime-generated `Intl` text (weekday/month names rendered by the
+	// sidebar calendar in `molecules/CalendarView.svelte`). These strings exist
+	// as no literal anywhere in the source, so every scan above misses them;
+	// without this the subset drops those glyphs and the browser falls back to
+	// a system font mid-widget (e.g. the 二 in 「周二」).
+	//
+	// Fixed anchor dates instead of "today" keep the subset reproducible: the
+	// charset must not drift with the build date. 2021-01-03 is a Sunday, the
+	// same anchor CalendarView uses, so one pass covers all seven weekdays.
+	if (subsetting.includeRuntimeIntl ?? true) {
+		const locale = lang.replace("_", "-");
+		for (let day = 0; day < 7; day += 1) {
+			for (const ch of new Intl.DateTimeFormat(locale, {
+				weekday: "short",
+			}).format(new Date(2021, 0, 3 + day))) {
+				charSet.add(ch);
+			}
+		}
+		for (let month = 0; month < 12; month += 1) {
+			for (const ch of new Intl.DateTimeFormat(locale, {
+				month: "long",
+			}).format(new Date(2021, month, 1))) {
+				charSet.add(ch);
+			}
+		}
 	}
 
 	return Array.from(charSet).sort().join("");
@@ -256,6 +286,8 @@ export async function runFontSubsetting(
 	extraCharacters: string,
 	logger: { info: (m: string) => void; warn: (m: string) => void },
 	registryRef?: { overrides: Map<string, string> },
+	/** Site language, forwarded to `collectSiteText` for runtime `Intl` text. */
+	lang = "en",
 ): Promise<SubsetResult> {
 	const outputs = new Map<string, string>();
 
@@ -271,7 +303,7 @@ export async function runFontSubsetting(
 		return { outputs };
 	}
 
-	const text = await collectSiteText(paths, fontConfig, extraCharacters);
+	const text = await collectSiteText(paths, fontConfig, extraCharacters, lang);
 	const metingText = await collectMetingText(paths, fontConfig, logger, registryRef);
 	const charset = text + metingText;
 	if (!charset) {
@@ -380,12 +412,19 @@ export async function buildFontDeclarations(
 	const shouldSubset = options.subset && (fontConfig.subsetting?.enable ?? false);
 	let subsets = new Map<string, string>();
 	if (shouldSubset) {
+		// `siteConfig.lang` drives every `Intl`-formatted string on the site, so
+		// the charset scan needs it to reproduce the calendar's weekday/month
+		// names. Loaded through `loadConfigModule` so package mode gets the user's
+		// override rather than the shipped defaults.
+		const siteModule = await loadConfigModule(paths, "siteConfig", registryRef);
+		const lang = (siteModule.siteConfig as { lang?: string } | undefined)?.lang;
 		({ outputs: subsets } = await runFontSubsetting(
 			paths,
 			fontConfig,
 			options.extraCharacters,
 			logger,
 			registryRef,
+			lang,
 		));
 	}
 

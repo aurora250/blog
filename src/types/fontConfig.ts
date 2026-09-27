@@ -105,6 +105,14 @@ export interface FontSubsettingOptions {
 	/** 是否包含通用标点与基础字符 */
 	includeCommon: boolean;
 	/**
+	 * 是否包含「运行时由 Intl 生成」的文字（周几、月份名）。
+	 *
+	 * 侧栏日历的周几名/月份名是客户端用 `Intl.DateTimeFormat(locale, ...)` 现算的，
+	 * 源码里没有字面量，常规扫描收不到；关闭它会让这些字缺字形并回退系统字体。
+	 * 默认 true，一般无需改动。
+	 */
+	includeRuntimeIntl?: boolean;
+	/**
 	 * 是否允许拉取远端文本进行分析。
 	 * 安全限制：在远端数据契约确立前必须保持为 false，禁止构建访问外部网络。
 	 */
