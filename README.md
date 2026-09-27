@@ -86,7 +86,15 @@ pnpm build && pnpm preview
 - `src/pages/robots.txt.ts`：`Sitemap:` 地址缺少前缀；
 - `src/layouts/Layout.astro`：页面 `<head>` 中 RSS / Atom 的 `<link rel="alternate">` 缺少前缀。
 
-另外把上游面向主题开发者的 CI（包含依赖演示文章的 Playwright 端到端测试）替换为适合个人博客的「构建校验 + 主题单元测试」。
+另外把上游面向主题开发者的 CI（包含依赖演示文章的 Playwright 端到端测试）替换为适合个人博客的「构建校验 + 主题单元测试」。CI 中刻意排除了三类检查，原因如下：
+
+| 排除项 | 原因 |
+| --- | --- |
+| `pnpm check:manifest` | 校验主题自带 Markdown 语法演示文与语法清单的对应关系，演示文已删除 |
+| `tests/feature-data.test.mjs` | 断言中写死了 `shirone`、`kernelpatch`、`folkpatch`、`PHP` 等演示实体 |
+| `includes` / `rehype-markdown-images` 插件测试 | 前者依赖 `src/content/snippets/include-example.md`；后者在上游原始克隆中同样失败 |
+
+除上述三项外，387 项与文章内容无关的主题单元测试仍在 CI 中运行。想恢复被排除的检查，把主题的演示文章放回 `src/content/posts/` 与 `src/content/snippets/`，并在 `src/data/` 中恢复演示实体即可。
 
 ## 升级主题
 
