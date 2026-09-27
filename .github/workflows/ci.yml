@@ -1,0 +1,70 @@
+# 博客自己的 CI：只做「这个站点还能构建成功吗」这一件事。
+#
+# 为什么不是上游那套完整的主题 CI：
+#   - 上游 CI 会跑 Playwright 端到端测试（tests/site/*.spec.ts），断言的是模板自带的
+#     演示文章与演示数据（markdown-*、albums、anime、encrypted-demo 等）。这些示例内容
+#     已随个人博客初始化删除，因此那套测试在本仓库必然失败。
+#   - 主题内部逻辑的单元测试（tests/*.test.mjs）不依赖文章内容，继续保留。
+#
+# 部署由 .github/workflows/deploy.yml 负责；这里的构建只是构建期校验，不发布。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # 定期跑一次：尽早发现上游依赖或 lockfile 的漂移
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ASTRO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    name: Build and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 9.14.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Check Astro diagnostics
+        run: pnpm exec astro check
+
+      - name: Validate component manifest
+        run: pnpm check:manifest
+
+      - name: Run theme unit tests
+        run: node --test "tests/**/*.test.mjs"
+
+      - name: Build production site
+        run: pnpm build

@@ -1,0 +1,104 @@
+# 构建并部署到 GitHub Pages（单仓模式：主题源码 + 文章内容都在本仓库）。
+#
+# 触发方式：
+#   - push 到 main：正常发布
+#   - Actions 页面手动 Run workflow：用于回滚或重建（不新增提交）
+#
+# 首次使用前，需要在仓库 Settings 里做两件事：
+#   1. Settings > Pages > Build and deployment > Source 选择「GitHub Actions」；
+#   2. 确认 Settings > Actions > General 的 Workflow permissions 允许 Actions 运行
+#      （本文件已声明所需的最小权限，无需额外勾选写入权限）。
+#
+# 站点地址：https://<user>.github.io/<repo>/ —— 与 src/config/siteConfig.ts 的
+# `site` + `base` 必须一致。改仓库名或绑定自定义域名后，记得同步改回并重新构建。
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    # 只改文档时不必重新部署，省 Actions 额度
+    paths-ignore:
+      - "docs/**"
+      - "rules/**"
+      - "*.md"
+      - "README*.md"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+  workflow_dispatch:
+
+# 同一时间只允许一个部署：新的推送会取消排队中的旧构建，但不会打断正在发布的部署。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # 关闭 Astro 的匿名遥测：CI 里没有意义，且避免额外网络请求。
+  ASTRO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 9.14.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      # 缓存头图缩略图：按源图内容哈希复用，跨 commit 命中安全。
+      - name: Restore build caches
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: public/assets/moments/thumbnails
+          key: ${{ runner.os }}-shirone-thumbnails-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-shirone-thumbnails-
+
+      # `pnpm build` 内部会依次执行：内容校验与物化 → 本地图标生成 → 瞬间缩略图 →
+      # astro build（输出 dist/）→ pagefind 全文索引 → 字体子集化体积校验。
+      - name: Build site
+        run: pnpm build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
