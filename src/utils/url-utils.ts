@@ -178,12 +178,16 @@ export function toAbsoluteUrl(
  * （`https://<user>.github.io/<repo>/`）下会生成缺子路径的死链。
  *
  * 需要「站点根地址」时一律用本函数，不要直接拼 `context.site`。
- * 用法示例：`const site = getSiteWithBase(context.site)`。
+ * 调用示例：`const site = getSiteWithBase()`。
+ *
+ * 之所以不接受调用方传入 `context.site`：该值只含根域名，与本地配置的 `site`
+ * 等价，传入反而会诱使调用方误以为可以使用「带 base 的外部地址」。
  */
-export function getSiteWithBase(site?: URL | string | null): URL {
+export function getSiteWithBase(): URL {
 	// `new URL(path, baseUrl)` 依赖 baseUrl 以 "/" 结尾才能正确替换最后一段，
 	// 因此这里补上结尾斜杠；再拼上不带首尾斜杠的 base 段。
+	// `base` 是可选字段（未配置即根路径部署），因此兜底为空串。
 	const originBase = `${siteConfig.site.replace(/\/+$/, "")}/`;
-	const baseSegment = siteConfig.base.replace(/^\/+|\/+$/g, "");
+	const baseSegment = (siteConfig.base ?? "").replace(/^\/+|\/+$/g, "");
 	return new URL(baseSegment ? `${baseSegment}/` : "", originBase);
 }

@@ -5,7 +5,7 @@ import { profileConfig, siteConfig } from "@/config";
 
 export async function GET(context: APIContext): Promise<Response> {
 	// 必须带 base：`context.site` 只有根域名，项目站点下会生成缺子路径的死链。
-	const site = getSiteWithBase(context.site);
+	const site = getSiteWithBase();
 	const posts = await getFeedPosts(site);
 
 	const xml = buildAtomXml({

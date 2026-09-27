@@ -11,7 +11,7 @@ export const GET: APIRoute = async (context: APIContext) => {
 	}
 
 	// 必须带 base：`context.site` 只有根域名，项目站点下会生成缺子路径的死链。
-	const siteUrl = getSiteWithBase(context.site).href.replace(/\/$/, "");
+	const siteUrl = getSiteWithBase().href.replace(/\/$/, "");
 	const allPosts = await getSortedPosts();
 
 	// 严格安全与隐私过滤：排除加密文章、草稿以及黑名单标签/分类
