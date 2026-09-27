@@ -82,7 +82,7 @@ pnpm build && pnpm preview
 
 ## 当前功能状态
 
-初始化时删除了主题自带的全部示例文章与演示数据，并关闭了需要自备素材或外部数据源的功能页：
+初始化时删除了主题自带的全部示例文章与演示数据。需要自备素材或外部数据源的功能页（番剧、相册）保持关闭，其余页面入口保留、填入数据即生效。**音乐与横幅背景已启用**，见下节。
 
 | 功能 | 状态 | 恢复方式 |
 | --- | --- | --- |
@@ -91,10 +91,63 @@ pnpm build && pnpm preview
 | 说说（moments） | ✅ 启用 | 往 `src/content/moments/` 加 `.md` |
 | 项目 / 技能 / 时间线 | ✅ 入口保留 | 填 `src/data/projects.ts`、`skills.ts`、`timeline.ts` |
 | 罗盘 | ✅ 启用 | 已在 `src/data/compass.ts` 放置 cnotv 入口 |
-| 音乐挂件 | ⏸ 关闭 | 配好 `src/data/music.ts` 后把 `sidebarConfig.ts` 中 `music` 改为 `enable: true` |
-| 番剧 / 相册 / 游戏 / 设备 / 友链 | ⏸ 关闭 | 备好素材后把对应 `src/config/*Config.ts` 的 `enable` 改为 `true`（导航入口会自动出现） |
+| 音乐挂件（自定义背景音乐） | ✅ 启用 | 默认 `provider: "mixed"`：本地曲目 + 云端歌单。往 `src/data/music.ts` 或 `musicConfig.tracks` 加曲目，详见下方「自定义背景与音乐」 |
+| 横幅背景（自定义背景） | ✅ 启用 | 壁纸列表为空时自动隐藏并降级为紧凑布局（等同纯色），放入图片即生效 |
+| 番剧 | ⏸ 关闭 | 需外部数据源（Bangumi/B站）或自备数据，见 `animeConfig.ts` |
+| 相册 | ⏸ 关闭 | 需自备相册素材（`public/images/albums/<相册名>/`） |
 | 评论（Twikoo / Giscus） | ⏸ 关闭 | 见 `src/config/commentConfig.ts` |
 | 访问统计（Umami） | ⏸ 关闭 | 见 `src/config/umamiConfig.ts` |
+
+## 自定义背景与音乐
+
+主题的这两个功能都遵循「配置管行为、数据管内容」：**改配置不动数据，加内容不改配置**。
+
+### 自定义背景（横幅壁纸）
+
+配置在 `src/config/siteConfig.ts`，图片放 `src/assets/images/banner/{desktop,mobile}/`：
+
+```ts
+wallpaperMode: { defaultMode: "banner" },   // 已设好，无需再改
+banner: {
+  src: {
+    desktop: ["assets/images/banner/desktop/1.webp"],  // >= 1024px
+    mobile:  ["assets/images/banner/mobile/1.webp"],   // < 1024px 的首页
+  },
+},
+```
+
+- 路径**相对 `src/`**（`src/assets/...` 中的 `src/` 不写），这样走构建期图片优化，自动产出 AVIF/WebP 响应式候选图；填 `/` 开头的 public 路径或远程 URL 也可以，但不做优化。
+- 放多张即自动轮播（间隔、过渡、运镜见 `banner.carousel`）；每组一张则为静态。
+- **壁纸列表为空是安全的**：`resolveBannerState()` 判定 `visible = mode === "banner" && imageCount > 0`，无图时横幅不渲染、布局降级为紧凑模式，视觉上等同纯色，不会出现空白横幅。
+- 首页标题/副标题与打字机效果在 `banner.homeText`；遮罩浓度在 `banner.dim`。
+
+### 自定义背景音乐
+
+组件开关：`src/config/sidebarConfig.ts` 的 `{ type: "music", enable: true }`（已开启）。
+数据源在 `src/config/musicConfig.ts` 的 `provider`，四种模式：
+
+| provider | 数据来源 | 说明 |
+| --- | --- | --- |
+| `local` | `src/data/music.ts` 的 `musicTracks` | 自托管音频，零外部依赖，断网可播 |
+| `custom` | `musicConfig.tracks` 数组 | 直接内联曲目，支持外链 |
+| `meting` | 云端歌单 | 无需音频文件，交互后异步拉取 |
+| `mixed`（当前） | 本地曲目 + 云端歌单 | 本地立即可播，云端就绪后无缝扩容；断网自动降级为本地 |
+
+当前的 `meting.id`（`14164869977`）是**主题作者提供的示例歌单**，建议换成你自己的网易云歌单 id；
+不需要云端时把 `provider` 改为 `local` 并删掉 `meting` 即可。
+
+加自托管曲目（两步）：
+
+```ts
+// 1) 音频放 public/assets/music/url/ ，封面放 src/assets/images/music/
+// 2) 在 src/data/music.ts 追加：
+{ id: "song-1", title: "曲名", artist: "艺术家",
+  cover: "assets/images/music/song-1.webp",   // 相对 src/
+  source: "/assets/music/url/song-1.mp3",     // 相对 public/
+  duration: 240 },
+```
+
+两个数据源都为空且未配 `meting.id` 时，`resolveMusicOptions()` 返回 `null`，挂件**完全不渲染**（零请求、零 DOM），不会留下空卡片。
 
 ## 相对上游主题的本地改动
 

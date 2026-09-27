@@ -28,9 +28,9 @@ export const sidebarConfig: SidebarConfig = withUserConfig("sidebar", {
 	side: "left",
 	components: [
 		{ type: "profile", enable: true, slot: "top" },
-		// 音乐组件需要有效曲目（src/data/music.ts + src/config/musicConfig.ts）才会渲染，
-		// 示例曲目已随示例内容删除，因此先关闭；配好曲目后改回 true 即可。
-		{ type: "music", enable: false, slot: "top" },
+		// 音乐挂件：本地曲目写在 src/data/music.ts，云端歌单见 src/config/musicConfig.ts
+		// 的 provider / meting。两者都为空时组件不渲染（零额外负担），不会出现空卡片。
+		{ type: "music", enable: true, slot: "top" },
 		{ type: "announcement", enable: true, slot: "top", pages: ["home"] },
 		{
 			type: "categories",

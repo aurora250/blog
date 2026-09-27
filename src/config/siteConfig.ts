@@ -44,11 +44,11 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 	},
 	// 默认页面背景模式："banner" 使用壁纸横幅，"none" 使用主题纯色。
 	// 访客在“显示设置”中的选择会保存在浏览器中，并覆盖这里的默认值。
-	// 当前默认纯色：未配置壁纸素材时 banner 会退化为空白，因此先用 none。
-	// 想换成壁纸：把自己的图放进 src/assets/images/banner/desktop|mobile/，填好下方 banner.src，
-	// 再把 defaultMode 改回 "banner"。
+	// 保持 "banner"：壁纸列表为空时 `resolveBannerState()` 会自动判定 visible=false，
+	// 横幅不渲染并降级为紧凑布局（视觉上等同纯色），因此不会出现空白横幅。
+	// 放入壁纸后无需再改这里，横幅即自动生效。
 	wallpaperMode: {
-		defaultMode: "none",
+		defaultMode: "banner",
 	},
 	// 页面背景纹理系统配置（5 大精美预设 + 零开销 HCT 动态取色）
 	texture: {
@@ -62,8 +62,12 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 		// 以 "/" 开头的 public 路径与远程 URL 仍可用，但会保留原图、不生成候选。
 		// desktop 用于 >= 1024px；mobile 仅用于 < 1024px 的首页，手机非首页不显示壁纸。
 		// 数组顺序就是轮播顺序；只需要静态 Banner 时，每组保留一张图片即可。
-		// 注意：此处的示例图已随示例内容一并删除，请替换为自己的图片后再把
-		// wallpaperMode.defaultMode 改为 "banner"。
+		// 多张图会自动轮播（见下方 carousel）。
+		//
+		// 当前为空：把壁纸放进对应的 banner/desktop 与 banner/mobile 目录后，
+		// 按下面注释的写法把路径填进来即可生效（无需改动其它配置）：
+		//   desktop: ["assets/images/banner/desktop/1.webp"],
+		//   mobile:  ["assets/images/banner/mobile/1.webp"],
 		src: {
 			desktop: [],
 			mobile: [],
